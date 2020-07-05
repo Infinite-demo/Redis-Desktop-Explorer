@@ -29,6 +29,7 @@ namespace RedisDesktopExplorer
             try
             {
                 timer1.Start();
+                resultTextBox.Text = string.Empty;
                 string connectionString = $"{serverTextBox.Text}:{portTextBox.Text}";
                 ConfigurationOptions options = ConfigurationOptions.Parse(connectionString);
                 ConnectionMultiplexer connection = ConnectionMultiplexer.Connect(options);
@@ -49,13 +50,23 @@ namespace RedisDesktopExplorer
 
         private void KeysListBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // Get the currently selected item in the ListBox.
-            currentItem = keysListBox.SelectedItem.ToString();
+            currentItem = keysListBox.SelectedItem?.ToString();
             if (currentItem != null)
+            {
                 resultTextBox.Text = _redisDb.StringGet(currentItem);
-
+                ShowTime();
+            }
             resultTextBox.ReadOnly = true;
             editButton.Text = "Edit";
+        }
+
+        private void ShowTime()
+        {
+            try
+            {
+                expireTimeLabel.Text = _redisDb.KeyTimeToLive(currentItem).Value.ToString();
+            }
+            catch { expireTimeLabel.Text = "NA"; }
         }
 
         private void Add_Click(object sender, EventArgs e)
@@ -63,6 +74,7 @@ namespace RedisDesktopExplorer
             var response = Interaction.InputBox("Enter Key name", "New Key", "");
             keys.Add(response);
             keysListBox.SelectedIndex = keys.Count - 1;
+            currentItem = response;
             resultTextBox.ReadOnly = false;
             editButton.Text = "Save";
             addButton.Enabled = false;
@@ -93,10 +105,13 @@ namespace RedisDesktopExplorer
 
         private void button2_Click(object sender, EventArgs e)
         {
+            resultTextBox.Text = string.Empty;
             if (string.IsNullOrWhiteSpace(currentItem)) return;
             keys.Remove(currentItem);
+            if (string.IsNullOrWhiteSpace(currentItem)) return;
             _redisDb.KeyDelete(currentItem);
-            currentItem = keysListBox.SelectedItem.ToString();
+            if (keys.Count > 0)
+                keysListBox.SelectedIndex = keys.Count - 1;
         }
     }
 }
